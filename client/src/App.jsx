@@ -7,6 +7,7 @@ function App() {
     const [modelRes, setmodelRes] = useState("");
     const [logs, setlogs] = useState([]);
 
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"
     const handleQuery = async (e, query) => {
         e.preventDefault();
         setmodelRes("");
@@ -16,7 +17,7 @@ function App() {
 
         // get logs
         try {
-            const response = await fetch("http://localhost:8000/api/search", {
+            const response = await fetch(BACKEND_URL + "/api/search", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -33,7 +34,7 @@ function App() {
         }
 
         try {
-            const response = await fetch("http://localhost:8000/api/generate", {
+            const response = await fetch(BACKEND_URL + "/api/generate", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"

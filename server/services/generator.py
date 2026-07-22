@@ -7,7 +7,7 @@ model = ChatGoogleGenerativeAI(
     model="gemini-3.1-flash-lite",
     temperature=0.2,
     api_key=os.getenv("GOOGLE_API_KEY"),
-    timeout=None,
+    timeout=300,
     max_tokens=None,
     max_retries=1,
 )

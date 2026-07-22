@@ -4,6 +4,11 @@ from contextlib import asynccontextmanager
 from db.session import db_pool
 from routes.logRoutes import router
 from services.embeddings import load_model
+import dotenv
+import os
+
+dotenv.load_dotenv()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,7 +32,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 origins = [
-    "http://localhost:5173"
+    os.getenv("FRONTEND_URL") or "http://localhost:5173"
 ]
 
 app.add_middleware(

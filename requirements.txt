@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+psycopg[binary]
+psycopg-pool
+langchain
+langchain-core
+langchain-google-genai
+langchain-huggingface
+sentence-transformers
+torch
