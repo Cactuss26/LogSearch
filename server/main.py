@@ -51,9 +51,3 @@ async def health_check():
         "status": "healthy",
         "database": "connected"
     }
-
-@app.get("/api/logs")
-async def get_logs():
-    return {
-        "logs": []
-    }
