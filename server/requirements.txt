@@ -8,5 +8,3 @@ langchain
 langchain-core
 langchain-google-genai
 langchain-huggingface
-sentence-transformers
-torch

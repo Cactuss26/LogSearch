@@ -1,31 +1,26 @@
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from coresettings.config import EMBEDDINGS_BATCH_SIZE
 from .regexpattern import log_pattern
 from .dbqueries import batch_add_log, hybrid_search
 from db.session import get_conn, db_pool
 from services.query_extractor import extract_constraints
-import asyncio, os
+import asyncio, os, dotenv
 
+dotenv.load_dotenv()
 model = None
 
 def load_model():
     global model
 
     try:
-        print("Searching for model to load in local files")
-        model = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",    
-            model_kwargs={"local_files_only": True},
-            encode_kwargs={"normalize_embeddings": True},
+        print("Loading model")
+        model = HuggingFaceEndpointEmbeddings(
+            model="sentence-transformers/all-MiniLM-L6-v2",    
+            task="feature-extraction"
         )
-        print("Model loaded from local files")
-
+        print("Model loaded")
     except Exception as e:
-        print("Model not found in local files, downloading model from web")
-        model = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",    
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        print("Failed to load model")
 
 def generate_embedding_query(query: str) -> list[float]:
     if (model):
