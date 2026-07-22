@@ -4,20 +4,29 @@ from .regexpattern import log_pattern
 from .dbqueries import batch_add_log, hybrid_search
 from db.session import get_conn, db_pool
 from services.query_extractor import extract_constraints
-import asyncio
+import asyncio, os
 
-model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    encode_kwargs={"normalize_embeddings": True},
-)
+model = None
+
+def load_model():
+    global model
+    model = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",    
+        model_kwargs={"local_files_only": True},
+        encode_kwargs={"normalize_embeddings": True},
+    )
 
 def generate_embedding_query(query: str) -> list[float]:
-    return model.embed_query(query)
+    if (model):
+        return model.embed_query(query)
+    return []
 
 
 def generate_embeddings(logs: list[str]) -> list[list[float]]:
-    embeddings = model.embed_documents(logs)
-    return embeddings
+    if (model):
+        embeddings = model.embed_documents(logs)
+        return embeddings
+    return []
 
 
 # extracting logfiles
@@ -77,18 +86,18 @@ async def store_embeddings():
                 }
 
 
-async def main():
-    await db_pool.open()
+# async def main():
+#     # await db_pool.open()
 
-    try:
-        print("Started storing into DB")
-        await store_embeddings()
-        print("Finished storing into DB")
+#     # try:
+#     #     print("Started storing into DB")
+#     #     await store_embeddings()
+#     #     print("Finished storing into DB")
 
-    finally:
-        await db_pool.close()
+#     # finally:
+#     #     await db_pool.close()
 
 
-if __name__ == "__main__":
-    # asyncio.run(main())
-    ...
+# if __name__ == "__main__":
+#     # asyncio.run(main())
+#     ...

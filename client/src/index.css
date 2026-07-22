@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+
+@plugin "@tailwindcss/typography";
+@theme {
+  --color-brand-primary: #6366f1;
+}
+
+body {
+  background-color: #050505;
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.15), transparent 35%),
+    radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.15), transparent 35%),
+    radial-gradient(circle at 50% 100%, rgba(168, 85, 247, 0.15), transparent 40%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+/* Base scrollbar for the rest of the app */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+/* Override Tailwind Typography Code Backticks */
+.prose code::before,
+.prose code::after {
+  content: none !important;
+}
