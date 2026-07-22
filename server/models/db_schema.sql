@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE "server_logs" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL,

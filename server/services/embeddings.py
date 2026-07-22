@@ -10,11 +10,22 @@ model = None
 
 def load_model():
     global model
-    model = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",    
-        model_kwargs={"local_files_only": True},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+
+    try:
+        print("Searching for model to load in local files")
+        model = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",    
+            model_kwargs={"local_files_only": True},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+        print("Model loaded from local files")
+
+    except Exception as e:
+        print("Model not found in local files, downloading model from web")
+        model = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",    
+            encode_kwargs={"normalize_embeddings": True},
+        )
 
 def generate_embedding_query(query: str) -> list[float]:
     if (model):
@@ -38,6 +49,7 @@ async def store_embeddings():
             "raw_messages": [],
         }
 
+        load_model()
         async with get_conn() as conn:                
             for line in f:
                 res = log_pattern.match(line)
