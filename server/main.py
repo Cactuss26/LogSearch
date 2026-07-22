@@ -15,6 +15,7 @@ async def lifespan(app: FastAPI):
         print("Opening db pool")
         await db_pool.open()
         print("Successfully opened database pool")
+
         yield
     except:
         raise BaseException("Error opening database pool")
