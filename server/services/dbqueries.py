@@ -23,16 +23,16 @@ async def add_log(conn: AsyncConnection, timestamp: str, level: str, message: st
             raise e
         
 async def batch_add_log(conn: AsyncConnection, timestamps: list[str], levels: list[str], messages: list[str], 
-                        embeddings: list[list[float]]):
+                        embeddings: list[list[float]], session_id: str):
     query = """
-    INSERT INTO server_logs (timestamp, level, raw_message, embedding)
-    VALUES (%s, %s, %s, %s)
-    RETURNING id;
+    INSERT INTO server_logs (session_id, timestamp, level, raw_message, embedding)
+    VALUES (%s, %s, %s, %s, %s);
     """
-    
+
+    session_list = [session_id for i in range(len(timestamps))]
     async with conn.cursor() as cursor:
         try:
-            await cursor.executemany(query, list(zip(timestamps, levels, messages, embeddings)))
+            await cursor.executemany(query, list(zip(session_list, timestamps, levels, messages, embeddings)))
             await conn.commit()
         except Exception as e:
             await conn.rollback()

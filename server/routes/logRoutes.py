@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from psycopg import AsyncConnection
@@ -6,12 +6,32 @@ import json
 
 from db.session import get_conn
 from services.query_extractor import extract_constraints
-from services.embeddings import generate_embedding_query
+from services.embeddings import generate_embedding_query, store_file_embeddings
 from services.dbqueries import hybrid_search
 from schemas.req_schema import SearchRequest, GenerateRequest
 from services.generator import chain
 
 router = APIRouter(prefix="/api", tags=["Search"])
+
+@router.post("/store")
+async def store_logs(file: UploadFile):
+    if not file:
+        raise HTTPException(status_code=400, detail="No file selected")
+
+    if not file.filename.endswith((".log", ".txt")):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    try:
+        status, session_id, lines = await store_file_embeddings(file)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+    print(status)
+    return {
+        "session_id": session_id, 
+        "lines": lines
+    }  
 
 @router.post("/search")
 async def get_logs(request: SearchRequest):

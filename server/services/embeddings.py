@@ -1,10 +1,11 @@
+from fastapi import UploadFile, HTTPException
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from coresettings.config import EMBEDDINGS_BATCH_SIZE
 from .regexpattern import log_pattern
 from .dbqueries import batch_add_log, hybrid_search
 from db.session import get_conn, db_pool
 from services.query_extractor import extract_constraints
-import asyncio, os, dotenv
+import asyncio, os, dotenv, uuid
 
 dotenv.load_dotenv()
 model = None
@@ -28,62 +29,51 @@ def generate_embedding_query(query: str) -> list[float]:
     return []
 
 
-def generate_embeddings(logs: list[str]) -> list[list[float]]:
+async def generate_embeddings(logs: list[str]) -> list[list[float]]:
     if (model):
-        embeddings = model.embed_documents(logs)
+        embeddings = await model.aembed_documents(logs)
         return embeddings
     return []
 
 
-# extracting logfiles
-async def store_embeddings():
-    with open("data/ApacheHttp.log", "r", encoding="utf-8", errors="replace") as f:
-        current_batch_metadata = {
-            "timestamps": [],
-            "levels": [],
-            "raw_messages": [],
-        }
+async def store_file_embeddings(file: UploadFile):
+    content = await file.read()
+    logs = content.decode("utf-8", errors="replace")
 
-        load_model()
-        async with get_conn() as conn:                
-            for line in f:
-                res = log_pattern.match(line)
+    lines = [line.strip() for line in logs.splitlines()]
 
-                if (res):
-                    timestamp = res.group(1)
-                    level = res.group(2)
-                    message = res.group(3)
-                    current_batch_metadata["timestamps"].append(timestamp)
-                    current_batch_metadata["levels"].append(level)
-                    current_batch_metadata["raw_messages"].append(message)
-            
-                if (len(current_batch_metadata["raw_messages"]) == EMBEDDINGS_BATCH_SIZE):
-                    embeddings = generate_embeddings(current_batch_metadata["raw_messages"])
+    if not lines:
+        raise HTTPException(status_code=400, detail="File is empty")
 
-                    t = await batch_add_log(
-                        conn, 
-                        current_batch_metadata["timestamps"],
-                        current_batch_metadata["levels"],
-                        current_batch_metadata["raw_messages"],
-                        embeddings,
-                        )
-                    
-                    current_batch_metadata = {
-                       "timestamps": [],
-                        "levels": [],
-                        "raw_messages": [],
-                    }
-            
-            # final block
-            if (len(current_batch_metadata["raw_messages"]) > 0):
-                embeddings = generate_embeddings(current_batch_metadata["raw_messages"])
+    session_id = str(uuid.uuid4())
+    current_batch_metadata = {
+        "timestamps": [],
+        "levels": [],
+        "raw_messages": [],
+    }
 
-                t = await batch_add_log(
+    async with get_conn() as conn:                
+        for line in lines:
+            res = log_pattern.match(line)
+
+            if (res):
+                timestamp = res.group(1)
+                level = res.group(2)
+                message = res.group(3)
+                current_batch_metadata["timestamps"].append(timestamp)
+                current_batch_metadata["levels"].append(level)
+                current_batch_metadata["raw_messages"].append(message)
+        
+            if (len(current_batch_metadata["raw_messages"]) == EMBEDDINGS_BATCH_SIZE):
+                embeddings = await generate_embeddings(current_batch_metadata["raw_messages"])
+
+                await batch_add_log(
                     conn, 
                     current_batch_metadata["timestamps"],
                     current_batch_metadata["levels"],
                     current_batch_metadata["raw_messages"],
                     embeddings,
+                    session_id,
                     )
                 
                 current_batch_metadata = {
@@ -91,6 +81,90 @@ async def store_embeddings():
                     "levels": [],
                     "raw_messages": [],
                 }
+        
+        # final block
+        if (len(current_batch_metadata["raw_messages"]) > 0):
+            embeddings = generate_embeddings(current_batch_metadata["raw_messages"])
+
+            await batch_add_log(
+                conn, 
+                current_batch_metadata["timestamps"],
+                current_batch_metadata["levels"],
+                current_batch_metadata["raw_messages"],
+                embeddings,
+                session_id
+            )
+            
+            current_batch_metadata = {
+                "timestamps": [],
+                "levels": [],
+                "raw_messages": [],
+            }
+        
+
+    return (
+        "Successfully analyzed and stored",
+        session_id,
+        len(lines),
+    )
+    
+
+# extracting logfiles (hardcode) - legacy
+# async def store_embeddings():
+#     with open("data/ApacheHttp.log", "r", encoding="utf-8", errors="replace") as f:
+#         current_batch_metadata = {
+#             "timestamps": [],
+#             "levels": [],
+#             "raw_messages": [],
+#         }
+
+#         load_model()
+#         async with get_conn() as conn:                
+#             for line in f:
+#                 res = log_pattern.match(line)
+
+#                 if (res):
+#                     timestamp = res.group(1)
+#                     level = res.group(2)
+#                     message = res.group(3)
+#                     current_batch_metadata["timestamps"].append(timestamp)
+#                     current_batch_metadata["levels"].append(level)
+#                     current_batch_metadata["raw_messages"].append(message)
+            
+#                 if (len(current_batch_metadata["raw_messages"]) == EMBEDDINGS_BATCH_SIZE):
+#                     embeddings = generate_embeddings(current_batch_metadata["raw_messages"])
+
+#                     t = await batch_add_log(
+#                         conn, 
+#                         current_batch_metadata["timestamps"],
+#                         current_batch_metadata["levels"],
+#                         current_batch_metadata["raw_messages"],
+#                         embeddings,
+#                         )
+                    
+#                     current_batch_metadata = {
+#                        "timestamps": [],
+#                         "levels": [],
+#                         "raw_messages": [],
+#                     }
+            
+#             # final block
+#             if (len(current_batch_metadata["raw_messages"]) > 0):
+#                 embeddings = generate_embeddings(current_batch_metadata["raw_messages"])
+
+#                 t = await batch_add_log(
+#                     conn, 
+#                     current_batch_metadata["timestamps"],
+#                     current_batch_metadata["levels"],
+#                     current_batch_metadata["raw_messages"],
+#                     embeddings,
+#                     )
+                
+#                 current_batch_metadata = {
+#                     "timestamps": [],
+#                     "levels": [],
+#                     "raw_messages": [],
+#                 }
 
 
 # async def main():
