@@ -14,15 +14,16 @@ from services.generator import chain
 router = APIRouter(prefix="/api", tags=["Search"])
 
 @router.post("/store")
-async def store_logs(file: UploadFile):
-    if not file:
+async def store_logs(logfile: UploadFile):
+    if not logfile:
         raise HTTPException(status_code=400, detail="No file selected")
 
-    if not file.filename.endswith((".log", ".txt")):
+    if not logfile.filename.endswith((".log", ".txt")):
         raise HTTPException(status_code=400, detail="Invalid file type")
 
     try:
-        status, session_id, lines = await store_file_embeddings(file)
+        print("Storing embeddings")
+        status, session_id, lines = await store_file_embeddings(logfile)
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Internal Server Error")
